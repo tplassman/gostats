@@ -1,0 +1,45 @@
+{{ define "title" }}
+  Posts
+{{ end }}
+
+{{ define "content" }}
+  <h1>Posts</h1>
+  <form method="get">
+    <label for="limit">Limit</label>
+    <select id="limit" name="limit">
+      {{ $limit := .Limit }}
+      {{ range .Limits }}
+        <option value="{{ . }}" {{ if isSelected $limit . }}selected{{ end }}>{{ . }}</option>
+      {{ end }}
+    </select>
+    <input type="submit" value="Submit" />
+  </form>
+  <hr />
+  <nav style="text-align:right">
+    <a href="/posts?limit={{ .Limit }}&offset={{ getPrevOffset }}" title="Prev">Prev</a>
+    <a href="/posts?limit={{ .Limit }}&offset={{ getNextOffset }}" title="Next">Next</a>
+  </nav>
+  <table cellpadding="12" border="1">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>URL</th>
+        <th>Headline</th>
+        <th>Facebook Shared</th>
+        <th>Linked In Shares</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .Posts }}
+        <tr>
+          <td>{{ .FormattedDate }}</td>
+          <td>{{ .Url }}</td>
+          <td>{{ .Name }}</td>
+          <td>{{ .FbShares }}</td>
+          <td>{{ .LnShares }}</td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+{{ end }}
+
