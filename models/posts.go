@@ -38,7 +38,7 @@ func (post Post) FormattedDate() time.Time {
 	return t
 }
 
-func (post *Post) GetFbShares(wg *sync.WaitGroup) error {
+func (post *Post) getFbShares(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
 	res, _ := http.Get("http://graph.facebook.com/?id=" + post.Url)
@@ -56,7 +56,7 @@ func (post *Post) GetFbShares(wg *sync.WaitGroup) error {
 	return nil
 }
 
-func (post *Post) GetLnShares(wg *sync.WaitGroup) error {
+func (post *Post) getLnShares(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
 	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + post.Url + "&format=json")
@@ -97,8 +97,8 @@ func GetPosts(limit string, offset string) ([]Post, error) {
 	// Index into posts slice to get pointer instead of value provided by range
 	for i, _ := range posts {
 		wg.Add(2)
-		go posts[i].GetFbShares(&wg)
-		go posts[i].GetLnShares(&wg)
+		go posts[i].getFbShares(&wg)
+		go posts[i].getLnShares(&wg)
 	}
 
 	wg.Wait()
