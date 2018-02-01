@@ -94,7 +94,7 @@ func GetPosts(limit string, offset string) ([]Post, error) {
 	posts, _ := getHsPosts(limit, offset)
 
 	// Insert share counts into posts
-	// Index into posts slice to get pointer instead of value
+	// Index into posts slice to get pointer instead of value provided by range
 	for i, _ := range posts {
 		wg.Add(2)
 		go posts[i].GetFbShares(&wg)
