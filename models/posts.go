@@ -1,145 +1,112 @@
 package models
 
 import (
-  "encoding/json"
-  "io/ioutil"
-  "math/rand"
-  "net/http"
-  "sort"
-  "sync"
-  "time"
+	"encoding/json"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
+	"sort"
+	"sync"
+	"time"
 )
 
-// Fields changed to uppercase
-type Post struct {
-  Id           uint
-  Publish_Date uint `publish_date`
-  Name         string
-  Url          string
-  FbShares     int
-  LnShares     int
-}
-
-func (post Post) FormattedDate() time.Time {
-  t := time.Unix(int64(post.Publish_Date / 1000), 0)
-
-  return t
-}
-
 type hsAPIRes struct {
-  Objects []Post `json:objects`
-}
-
-type fbAPIRes struct {
-  ShareCount uint `json:share:share_count`
+	Objects []Post `json:objects`
 }
 
 type lnAPIRes struct {
-  ShareCount uint `json:count`
+	ShareCount uint `json:count`
+}
+
+type fbAPIRes struct {
+	ShareCount uint `json:share:share_count`
+}
+
+// Fields changed to uppercase
+type Post struct {
+	Id           uint
+	Publish_Date uint
+	Name         string
+	Url          string
+	FbShares     int
+	LnShares     int
+}
+
+func (post Post) FormattedDate() time.Time {
+	t := time.Unix(int64(post.Publish_Date/1000), 0)
+
+	return t
+}
+
+func (post *Post) GetFbShares(wg *sync.WaitGroup) error {
+	defer wg.Done()
+
+	res, _ := http.Get("http://graph.facebook.com/?id=" + post.Url)
+	defer res.Body.Close()
+
+	body, _ := ioutil.ReadAll(res.Body)
+
+	// Populate struct w/ json response
+	var fbRes = new(fbAPIRes)
+	json.Unmarshal(body, &fbRes)
+
+	// Add share count to post
+	post.LnShares = rand.Int()
+
+	return nil
+}
+
+func (post *Post) GetLnShares(wg *sync.WaitGroup) error {
+	defer wg.Done()
+
+	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + post.Url + "&format=json")
+	defer res.Body.Close()
+
+	body, _ := ioutil.ReadAll(res.Body)
+
+	// Populate struct w/ json response
+	var lnRes = new(lnAPIRes)
+	json.Unmarshal(body, &lnRes)
+
+	// Add share count to post
+	post.FbShares = rand.Int()
+
+	return nil
 }
 
 func getHsPosts(limit string, offset string) ([]Post, error) {
-  res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
-  defer res.Body.Close()
+	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
+	defer res.Body.Close()
 
-  body, _ := ioutil.ReadAll(res.Body)
+	body, _ := ioutil.ReadAll(res.Body)
 
-  // Populate struct w/ json response
-  var hsRes = new(hsAPIRes)
-  json.Unmarshal(body, &hsRes)
+	// Populate struct w/ json response
+	var hsRes = new(hsAPIRes)
+	json.Unmarshal(body, &hsRes)
 
-  return hsRes.Objects, nil
-}
-
-func getFbShares(post Post, ch chan<- Post, wg *sync.WaitGroup) error {
-  defer wg.Done()
-
-  res, _ := http.Get("http://graph.facebook.com/?id=" + post.Url)
-  defer res.Body.Close()
-
-  body, _ := ioutil.ReadAll(res.Body)
-
-  // Populate struct w/ json response
-  var fbRes = new(fbAPIRes)
-  json.Unmarshal(body, &fbRes)
-
-  // Add share count to post
-  post.LnShares = rand.Int()
-  // Return updated post to channel
-  ch <- post
-
-  return nil
-}
-
-func getLnShares(post Post, ch chan<- Post, wg *sync.WaitGroup) error {
-  defer wg.Done()
-
-  res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + post.Url + "&format=json")
-  defer res.Body.Close()
-
-  body, _ := ioutil.ReadAll(res.Body)
-
-  // Populate struct w/ json response
-  var lnRes = new(lnAPIRes)
-  json.Unmarshal(body, &lnRes)
-
-  // Add share count to post
-  post.FbShares = rand.Int()
-  // Return updated post to channel
-  ch <- post
-
-  return nil
+	return hsRes.Objects, nil
 }
 
 func GetPosts(limit string, offset string) ([]Post, error) {
-  var wg sync.WaitGroup
-  var mutex = sync.Mutex{}
-  var postsMap = make(map[uint]Post)
+	var wg sync.WaitGroup
 
-  // Get posts from HubSpot API
-  hsPosts, _ := getHsPosts(limit, offset)
+	// Get posts from HubSpot API
+	posts, _ := getHsPosts(limit, offset)
 
-  // Set channel to twice length of posts since we are creating
-  // routines for both facebook and linkedin share counts
-  ch := make(chan Post, len(hsPosts) * 2)
+	// Insert share counts into posts
+	// Index into posts slice to get pointer instead of value
+	for i, _ := range posts {
+		wg.Add(2)
+		go posts[i].GetFbShares(&wg)
+		go posts[i].GetLnShares(&wg)
+	}
 
-  // Insert share counts into hsPosts
-  for _, post := range hsPosts {
-    wg.Add(2)
-    go getFbShares(post, ch, &wg)
-    go getLnShares(post, ch, &wg)
-  }
+	wg.Wait()
 
-  wg.Wait()
-  close(ch)
+	// Return sorted array of posts fby publish date
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].Publish_Date < posts[j].Publish_Date
+	})
 
-  // Add modified posts from channel to postsMap
-  for post := range ch {
-    mutex.Lock();
-    if val, ok := postsMap[post.Id]; ok {
-      if post.FbShares > val.FbShares {
-        val.FbShares = post.FbShares
-      }
-      if post.LnShares > val.LnShares {
-        val.LnShares = post.LnShares
-      }
-
-      postsMap[post.Id] = val
-    } else {
-      postsMap[post.Id] = post
-    }
-    mutex.Unlock()
-  }
-
-  // Return sorted array of posts from postsMap
-  var posts []Post
-  for _, post := range postsMap {
-    posts = append(posts, post)
-  }
-  sort.Slice(posts, func (i, j int) bool {
-    return posts[i].Publish_Date < posts[j].Publish_Date
-  })
-
-  return posts, nil;
+	return posts, nil
 }
-
