@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-  _ "fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -28,6 +27,11 @@ type fbAPIRes struct {
 	ShareCount uint `json:share:share_count`
 }
 
+type shareCount struct {
+  index int
+  count int
+}
+
 // Fields changed to uppercase
 type Post struct {
 	Id           uint
@@ -44,10 +48,8 @@ func (p Post) FormattedDate() time.Time {
 	return t
 }
 
-func (p *Post) getFbShares(wg *sync.WaitGroup) error {
-	defer wg.Done()
-
-	res, _ := http.Get("http://graph.facebook.com/?id=" + p.Url)
+func getFbShares(i int, url string, ch chan<- shareCount) error {
+	res, _ := http.Get("http://graph.facebook.com/?id=" + url)
 	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
@@ -56,18 +58,14 @@ func (p *Post) getFbShares(wg *sync.WaitGroup) error {
 	var fbRes = new(fbAPIRes)
 	json.Unmarshal(body, &fbRes)
 
-	// Add share count to post
-  p.Lock()
-  p.SocialShares[fbHandle] = rand.Int()
-  p.Unlock()
+	// Send share count over channel
+  ch <- shareCount{i, rand.Int()}
 
 	return nil
 }
 
-func (p *Post) getLnShares(wg *sync.WaitGroup) error {
-	defer wg.Done()
-
-	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + p.Url + "&format=json")
+func getLnShares(i int, url string, ch chan<- shareCount) error {
+	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + url + "&format=json")
 	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
@@ -77,9 +75,7 @@ func (p *Post) getLnShares(wg *sync.WaitGroup) error {
 	json.Unmarshal(body, &lnRes)
 
 	// Add share count to post
-  p.Lock()
-  p.SocialShares[lnHandle] = rand.Int()
-  p.Unlock()
+  ch <- shareCount{i, rand.Int()}
 
 	return nil
 }
@@ -100,20 +96,38 @@ func getHsPosts(limit string, offset string) ([]Post, error) {
 func GetPosts(limit string, offset string) ([]Post, error) {
 	var wg sync.WaitGroup
 
+  fbChan := make(chan shareCount)
+  lnChan := make(chan shareCount)
+
 	// Get posts from HubSpot API
 	posts, _ := getHsPosts(limit, offset)
 
 	// Insert share counts into posts
 	// Index into posts slice to get pointer instead of value provided by range
-	for i, _ := range posts {
+	for i, post := range posts {
     // Initalize share map
     posts[i].SocialShares = make(map[string]int)
     // Add wait group tasks
 		wg.Add(2)
     // Fetch share counts
-		go posts[i].getFbShares(&wg)
-		go posts[i].getLnShares(&wg)
+    go getFbShares(i, post.Url, fbChan)
+    go getLnShares(i, post.Url, lnChan)
 	}
+
+  go func () {
+    for i := 0; i < len(posts) * 2; i++ {
+      select {
+      case count := <-fbChan:
+        // Insert FB count into post by index
+        posts[count.index].SocialShares[fbHandle] = count.count
+      case count := <-lnChan:
+        // Insert LN count into post by index
+        posts[count.index].SocialShares[lnHandle] = count.count
+      }
+
+      wg.Done()
+    }
+  }()
 
 	wg.Wait()
 
