@@ -2,12 +2,18 @@ package models
 
 import (
 	"encoding/json"
+  _ "fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"sort"
 	"sync"
 	"time"
+)
+
+const (
+  fbHandle string = "fb"
+  lnHandle string = "ln"
 )
 
 type hsAPIRes struct {
@@ -28,20 +34,20 @@ type Post struct {
 	Publish_Date uint
 	Name         string
 	Url          string
-	FbShares     int
-	LnShares     int
+  sync.Mutex   // Protects social shares
+  SocialShares map[string]int
 }
 
-func (post Post) FormattedDate() time.Time {
-	t := time.Unix(int64(post.Publish_Date/1000), 0)
+func (p Post) FormattedDate() time.Time {
+	t := time.Unix(int64(p.Publish_Date/1000), 0)
 
 	return t
 }
 
-func (post *Post) getFbShares(wg *sync.WaitGroup) error {
+func (p *Post) getFbShares(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
-	res, _ := http.Get("http://graph.facebook.com/?id=" + post.Url)
+	res, _ := http.Get("http://graph.facebook.com/?id=" + p.Url)
 	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
@@ -51,15 +57,17 @@ func (post *Post) getFbShares(wg *sync.WaitGroup) error {
 	json.Unmarshal(body, &fbRes)
 
 	// Add share count to post
-	post.LnShares = rand.Int()
+  p.Lock()
+  p.SocialShares[fbHandle] = rand.Int()
+  p.Unlock()
 
 	return nil
 }
 
-func (post *Post) getLnShares(wg *sync.WaitGroup) error {
+func (p *Post) getLnShares(wg *sync.WaitGroup) error {
 	defer wg.Done()
 
-	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + post.Url + "&format=json")
+	res, _ := http.Get("https://www.linkedin.com/countserv/count/share?url=" + p.Url + "&format=json")
 	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
@@ -69,7 +77,9 @@ func (post *Post) getLnShares(wg *sync.WaitGroup) error {
 	json.Unmarshal(body, &lnRes)
 
 	// Add share count to post
-	post.FbShares = rand.Int()
+  p.Lock()
+  p.SocialShares[lnHandle] = rand.Int()
+  p.Unlock()
 
 	return nil
 }
@@ -96,7 +106,11 @@ func GetPosts(limit string, offset string) ([]Post, error) {
 	// Insert share counts into posts
 	// Index into posts slice to get pointer instead of value provided by range
 	for i, _ := range posts {
+    // Initalize share map
+    posts[i].SocialShares = make(map[string]int)
+    // Add wait group tasks
 		wg.Add(2)
+    // Fetch share counts
 		go posts[i].getFbShares(&wg)
 		go posts[i].getLnShares(&wg)
 	}
