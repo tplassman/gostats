@@ -9,7 +9,7 @@ import (
 )
 
 type shareCount interface {
-  getShareCount(int, string, chan<- shareCount) error
+	getShareCount(int, string, chan<- shareCount) error
 }
 
 type fbAPIRes struct {
@@ -17,13 +17,13 @@ type fbAPIRes struct {
 	count int `json:share:share_count`
 }
 
-func(r fbAPIRes) getShareCount(i int, url string, ch chan<- shareCount) error {
+func (r fbAPIRes) getShareCount(i int, url string, ch chan<- shareCount) error {
 	res, _ := http.Get("http://graph.facebook.com/?id=" + url)
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
 	// Add post index and populate struct w/ json response
-  r.index = i
+	r.index = i
 	json.Unmarshal(body, &r)
 
 	// Send share count over channel
@@ -43,11 +43,11 @@ func (r lnAPIRes) getShareCount(i int, url string, ch chan<- shareCount) error {
 	body, _ := ioutil.ReadAll(res.Body)
 
 	// Add post index and populate struct w/ json response
-  r.index = i
+	r.index = i
 	json.Unmarshal(body, &r)
 
 	// Add share count to post
-  ch <- r
+	ch <- r
 
 	return nil
 }
@@ -86,9 +86,9 @@ func getHsPosts(limit string, offset string) ([]Post, error) {
 
 func GetPosts(limit string, offset string) ([]Post, error) {
 	var wg sync.WaitGroup
-  shareCounts := []shareCount{fbAPIRes{}, lnAPIRes{}}
+	shareCounts := []shareCount{fbAPIRes{}, lnAPIRes{}}
 
-  ch := make(chan shareCount);
+	ch := make(chan shareCount)
 
 	// Get posts from HubSpot API
 	posts, _ := getHsPosts(limit, offset)
@@ -96,20 +96,20 @@ func GetPosts(limit string, offset string) ([]Post, error) {
 	// Insert share counts into posts
 	for i, post := range posts {
 		// Initalize share map
-    // Index into posts slice to get pointer instead of value provided by range
+		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Add wait group tasks
 		wg.Add(len(shareCounts))
 		// Fetch share counts
-    for _, c := range shareCounts {
-      go c.getShareCount(i, post.Url, ch)
-    }
+		for _, c := range shareCounts {
+			go c.getShareCount(i, post.Url, ch)
+		}
 	}
 
 	go func() {
-		for i := 0; i < len(posts) * len(shareCounts); i++ {
-      count := <-ch
-      switch count := count.(type) {
+		for i := 0; i < len(posts)*len(shareCounts); i++ {
+			count := <-ch
+			switch count := count.(type) {
 			case fbAPIRes:
 				// Insert FB count into post by index
 				posts[count.index].SocialShares["fb"] = count.count
