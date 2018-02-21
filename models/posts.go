@@ -22,11 +22,9 @@ func (r fbAPIRes) getShareCount(i int, url string, ch chan<- shareCount) error {
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
-	// Add post index and populate struct w/ json response
+	// Add post index, populate struct w/ json response and send over channel
 	r.index = i
 	json.Unmarshal(body, &r)
-
-	// Send share count over channel
 	ch <- r
 
 	return nil
@@ -42,11 +40,9 @@ func (r lnAPIRes) getShareCount(i int, url string, ch chan<- shareCount) error {
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
-	// Add post index and populate struct w/ json response
+	// Add post index, populate struct w/ json response and send over channel
 	r.index = i
 	json.Unmarshal(body, &r)
-
-	// Add share count to post
 	ch <- r
 
 	return nil
@@ -71,27 +67,25 @@ type hsAPIRes struct {
 	Objects []Post `json:objects`
 }
 
-func getHsPosts(limit string, offset string) ([]Post, error) {
+func (r hsAPIRes) getHsPosts(limit string, offset string) ([]Post, error) {
 	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
-
 	body, _ := ioutil.ReadAll(res.Body)
 
 	// Populate struct w/ json response
-	var hsRes = new(hsAPIRes)
-	json.Unmarshal(body, &hsRes)
+	json.Unmarshal(body, &r)
 
-	return hsRes.Objects, nil
+	return r.Objects, nil
 }
 
 func GetPosts(limit string, offset string) ([]Post, error) {
 	var wg sync.WaitGroup
+	var hs hsAPIRes
 	shareCounts := []shareCount{fbAPIRes{}, lnAPIRes{}}
-
 	ch := make(chan shareCount)
 
 	// Get posts from HubSpot API
-	posts, _ := getHsPosts(limit, offset)
+	posts, _ := hs.getHsPosts(limit, offset)
 
 	// Insert share counts into posts
 	for i, post := range posts {
@@ -108,14 +102,14 @@ func GetPosts(limit string, offset string) ([]Post, error) {
 
 	go func() {
 		for i := 0; i < len(posts)*len(shareCounts); i++ {
-			count := <-ch
-			switch count := count.(type) {
+			c := <-ch
+			switch c := c.(type) {
 			case fbAPIRes:
 				// Insert FB count into post by index
-				posts[count.index].SocialShares["fb"] = count.count
+				posts[c.index].SocialShares["fb"] = c.count
 			case lnAPIRes:
 				// Insert LN count into post by index
-				posts[count.index].SocialShares["ln"] = count.count
+				posts[c.index].SocialShares["ln"] = c.count
 			}
 
 			wg.Done()
