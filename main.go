@@ -4,9 +4,17 @@ import (
 	"cabstats/controllers"
 	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load environment file
+	err := godotenv.Load()
+	if err != nil {
+		// TODO: Handle environment loading failure
+	}
+
 	// Instantiate gorilla mux
 	r := mux.NewRouter()
 

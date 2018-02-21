@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -68,7 +69,8 @@ type hsAPIRes struct {
 }
 
 func (r hsAPIRes) getHsPosts(limit string, offset string) ([]Post, error) {
-	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
+	hsApiKey := os.Getenv("HS_API_KEY")
+	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + hsApiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
