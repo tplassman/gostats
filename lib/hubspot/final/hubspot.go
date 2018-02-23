@@ -7,31 +7,18 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 
-	"cabstats/lib/facebook"
-	"cabstats/lib/linkedin"
+	"cabstats/lib/facebook/final"
+	"cabstats/lib/linkedin/final"
 	"cabstats/lib/shared"
+	"cabstats/models"
 )
 
-// Fields changed to uppercase
-type Post struct {
-	Id           uint
-	Publish_Date uint
-	Name         string
-	Url          string
-	SocialShares map[string]int
-}
-
-func (p Post) FormattedDate() time.Time {
-	return time.Unix(int64(p.Publish_Date/1000), 0)
-}
-
 type APIRes struct {
-	Objects []Post `json:objects`
+	Objects []models.Post `json:objects`
 }
 
-func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
+func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
 	apiKey := os.Getenv("HS_API_KEY")
 	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
@@ -43,7 +30,7 @@ func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
 	return r.Objects, nil
 }
 
-func GetPosts(limit string, offset string) ([]Post, error) {
+func GetPosts(limit string, offset string) ([]models.Post, error) {
 	var wg sync.WaitGroup
 	var hs APIRes
 	shareCounts := []shared.ShareCount{facebook.APIRes{}, linkedin.APIRes{}}

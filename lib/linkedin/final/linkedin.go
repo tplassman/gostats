@@ -3,9 +3,7 @@ package linkedin
 import (
 	"encoding/json"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"cabstats/lib/shared"
 )

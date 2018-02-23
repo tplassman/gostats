@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/v3"
+	"cabstats/lib/hubspot/final"
 	"cabstats/models"
 )
 
