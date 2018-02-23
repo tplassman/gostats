@@ -1,16 +1,20 @@
 package controllers
 
 import (
-	"cabstats/models"
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
+
+	"cabstats/lib/hubspot"
 )
 
 type ViewData struct {
-	Posts  []models.Post
-	Limits []string
-	Limit  string
+	Posts                    []hubspot.Post
+	Limits                   []string
+	Limit                    string
+	Max, SumFb, SumLn, SumTo int
+	Elapsed                  int64
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +24,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	limits := []string{"5", "10", "15", "20"}
 	q := r.URL.Query()
 	limit := q.Get("limit")
@@ -31,13 +36,30 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		offset = "0"
 	}
 
-	posts, err := models.GetPosts(limit, offset)
+	// Get posts
+	posts, err := hubspot.GetPosts(limit, offset)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 
 		return
 	}
 
+	// Calculate sums
+	var sumFb, sumLn, sumTo int
+	max := 0
+	for _, post := range posts {
+		if post.SocialShares["fb"] > max {
+			max = post.SocialShares["fb"]
+		}
+		if post.SocialShares["ln"] > max {
+			max = post.SocialShares["ln"]
+		}
+		sumFb += post.SocialShares["fb"]
+		sumLn += post.SocialShares["ln"]
+		sumTo += post.SocialShares["fb"] + post.SocialShares["ln"]
+	}
+
+	// Define template functions
 	funcMap := template.FuncMap{
 		"isSelected": func(query string, value string) bool {
 			return query == value
@@ -62,7 +84,15 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	viewData := ViewData{posts, limits, limit}
+	// Render template
+	elapsed := int64(time.Since(start) / time.Millisecond)
+	viewData := ViewData{
+		posts,
+		limits,
+		limit,
+		max, sumFb, sumLn, sumTo,
+		elapsed,
+	}
 	t, _ := template.New("_layout.tmpl").Funcs(funcMap).ParseFiles("views/_layout.tmpl", "views/posts.tmpl")
 	t.Execute(w, viewData)
 }

@@ -41,5 +41,10 @@
       {{ end }}
     </tbody>
   </table>
+  <p style="text-align:right">
+    <strong>Max Response: </strong>{{ .Max }}ms<br />
+    <strong>Sum Responses: </strong>{{ .SumTo }}ms<br />
+    <strong>Elapsed Time: </strong>{{ .Elapsed }}ms<br />
+  </p>
 {{ end }}
 
