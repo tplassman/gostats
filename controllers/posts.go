@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot"
+	"cabstats/lib/hubspot/v3"
+	"cabstats/models"
 )
 
 type ViewData struct {
-	Posts                    []hubspot.Post
+	Posts                    []models.Post
 	Limits                   []string
 	Limit                    string
 	Max, SumFb, SumLn, SumTo int
