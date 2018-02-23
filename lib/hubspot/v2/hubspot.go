@@ -56,9 +56,11 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 		for i := 0; i < len(posts)*2; i++ {
 			select {
 			case fbCount := <-fbCh:
+				// Insert FB count into post by index
 				fmt.Println("facebook", fbCount.Index)
 				posts[fbCount.Index].SocialShares["fb"] = fbCount.Count
 			case lnCount := <-lnCh:
+				// Insert LN count into post by index
 				fmt.Println("linkedin", lnCount.Index)
 				posts[lnCount.Index].SocialShares["ln"] = lnCount.Count
 			}

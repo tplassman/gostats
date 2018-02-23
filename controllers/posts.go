@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/final"
+	"cabstats/lib/hubspot/v3"
 	"cabstats/models"
 )
 
 type ViewData struct {
-	Posts                    []models.Post
-	Limits                   []string
-	Limit                    string
-	Max, SumFb, SumLn, SumTo int
-	Elapsed                  int64
+	Posts    []models.Post
+	Limits   []string
+	Limit    string
+	Max, Sum int
+	Elapsed  int64
 }
 
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,8 +46,8 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Calculate sums
-	var sumFb, sumLn, sumTo int
 	max := 0
+	sum := 0
 	for _, post := range posts {
 		if post.SocialShares["fb"] > max {
 			max = post.SocialShares["fb"]
@@ -55,9 +55,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		if post.SocialShares["ln"] > max {
 			max = post.SocialShares["ln"]
 		}
-		sumFb += post.SocialShares["fb"]
-		sumLn += post.SocialShares["ln"]
-		sumTo += post.SocialShares["fb"] + post.SocialShares["ln"]
+		sum += post.SocialShares["fb"] + post.SocialShares["ln"]
 	}
 
 	// Define template functions
@@ -87,13 +85,10 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Render template
 	elapsed := int64(time.Since(start) / time.Millisecond)
-	viewData := ViewData{
-		posts,
-		limits,
-		limit,
-		max, sumFb, sumLn, sumTo,
-		elapsed,
+	viewData := ViewData{posts, limits, limit, max, sum, elapsed}
+	t, err := template.New("_layout.tmpl").Funcs(funcMap).ParseFiles("views/_layout.tmpl", "views/posts.tmpl")
+	if err != nil {
+		panic(err)
 	}
-	t, _ := template.New("_layout.tmpl").Funcs(funcMap).ParseFiles("views/_layout.tmpl", "views/posts.tmpl")
 	t.Execute(w, viewData)
 }

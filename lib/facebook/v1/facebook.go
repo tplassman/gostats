@@ -14,11 +14,13 @@ type APIRes struct {
 }
 
 func (r APIRes) GetShareCount(p models.Post, wg *sync.WaitGroup) error {
+	s := 500
+
 	// Simulate network request
-	time.Sleep(time.Duration(500) * time.Millisecond)
+	time.Sleep(time.Duration(s) * time.Millisecond)
 
 	fmt.Println("facebook ", p.Url)
-	p.SocialShares["fb"] = 500
+	p.SocialShares["fb"] = s
 	wg.Done()
 
 	return nil
