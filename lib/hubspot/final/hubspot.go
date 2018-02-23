@@ -45,9 +45,8 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
-		// Add wait group tasks
-		wg.Add(len(shareCounts))
 		// Fetch share counts
+		wg.Add(len(shareCounts))
 		for _, c := range shareCounts {
 			go c.GetShareCount(i, post.Url, ch)
 		}
