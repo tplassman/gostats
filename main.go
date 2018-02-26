@@ -1,10 +1,12 @@
 package main
 
 import (
-	"cabstats/controllers"
-	"github.com/gorilla/mux"
+	"fmt"
 	"net/http"
 
+	"cabstats/controllers"
+
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
 
@@ -12,7 +14,7 @@ func main() {
 	// Load environment file
 	err := godotenv.Load()
 	if err != nil {
-		// TODO: Handle environment loading failure
+		fmt.Println("No environment file found.  Please add .env file to root with required API keys")
 	}
 
 	// Instantiate gorilla mux
