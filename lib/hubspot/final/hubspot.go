@@ -40,18 +40,6 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 
 	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
 
-	// Insert share counts into posts
-	for i, post := range posts {
-		// Initalize share map
-		// Index into posts slice to get pointer instead of value provided by range
-		posts[i].SocialShares = make(map[string]int)
-		// Fetch share counts
-		wg.Add(len(shareCounts))
-		for _, c := range shareCounts {
-			go c.GetShareCount(i, post.Url, ch)
-		}
-	}
-
 	go func() {
 		for i := 0; i < len(posts)*len(shareCounts); i++ {
 			c := <-ch
@@ -69,6 +57,18 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 			wg.Done()
 		}
 	}()
+
+	// Insert share counts into posts
+	for i, post := range posts {
+		// Initalize share map
+		// Index into posts slice to get pointer instead of value provided by range
+		posts[i].SocialShares = make(map[string]int)
+		// Fetch share counts
+		wg.Add(len(shareCounts))
+		for _, c := range shareCounts {
+			go c.GetShareCount(i, post.Url, ch)
+		}
+	}
 
 	wg.Wait()
 	fmt.Println("\n--------------------Done\n")
