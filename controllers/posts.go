@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/v1"
+	"cabstats/lib/hubspot/v2"
 	"cabstats/models"
 )
 
@@ -70,9 +70,9 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 			if prevOffsetInt < 0 {
 				return "0"
-			} else {
-				return strconv.Itoa(prevOffsetInt)
 			}
+
+      return strconv.Itoa(prevOffsetInt)
 		},
 		"getNextOffset": func() string {
 			limitInt, _ := strconv.Atoi(limit)
