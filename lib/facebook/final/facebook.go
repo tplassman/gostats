@@ -11,18 +11,30 @@ import (
 type APIRes struct {
 	Index int
 	Count int `json:share:share_count`
+	Error error
 }
 
-func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) error {
-	res, _ := http.Get("http://graph.facebook.com/?id=" + url)
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-
-	// Add post index, populate struct w/ json response and send over channel
+func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) {
 	r.Index = i
-	json.Unmarshal(body, &r)
-
-	ch <- r
-
-	return nil
+	// Return API response to channel
+	defer func() { ch <- r }()
+	// Get API response
+	res, err := http.Get("http://graph.facebook.com/?id=" + url)
+	defer res.Body.Close()
+	if err != nil {
+		r.Error = err
+		return
+	}
+	// Read body from response
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		r.Error = err
+		return
+	}
+	// Add post index, populate struct w/ json response and send over channel
+	err = json.Unmarshal(body, &r)
+	if err != nil {
+		r.Error = err
+		return
+	}
 }

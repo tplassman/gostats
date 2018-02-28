@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"sync"
 
 	"cabstats/lib/facebook/final"
 	"cabstats/lib/linkedin/final"
@@ -19,44 +18,39 @@ type APIRes struct {
 }
 
 func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
+	endpoint := "https://api.hubapi.com/content/api/v2/blog-posts"
 	apiKey := os.Getenv("HS_API_KEY")
-	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
+	// Get API response
+	res, err := http.Get(endpoint + "?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-
+	if err != nil {
+		return nil, err
+	}
+	// Read body from response
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 	// Populate struct w/ json response
-	json.Unmarshal(body, &r)
+	err = json.Unmarshal(body, &r)
+	if err != nil {
+		return nil, err
+	}
 
 	return r.Objects, nil
 }
 
 func GetPosts(limit string, offset string) ([]models.Post, error) {
-	var wg sync.WaitGroup
 	var hs APIRes
 	shareCounts := []shared.ShareCount{facebook.APIRes{}, linkedin.APIRes{}}
 
 	// Get posts from HubSpot API
-	posts, _ := hs.GetPosts(limit, offset)
+	posts, err := hs.GetPosts(limit, offset)
+	if err != nil {
+		return nil, err
+	}
 
 	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
-
-	go func() {
-		for i := 0; i < len(posts)*len(shareCounts); i++ {
-			c := <-ch
-			switch c := c.(type) {
-			case facebook.APIRes:
-				// Insert FB count into post by index
-				fmt.Println("facebook", c.Index)
-				posts[c.Index].SocialShares["fb"] = c.Count
-			case linkedin.APIRes:
-				// Insert LN count into post by index
-				fmt.Println("linkedin", c.Index)
-				posts[c.Index].SocialShares["ln"] = c.Count
-			}
-
-			wg.Done()
-		}
-	}()
 
 	// Insert share counts into posts
 	for i, post := range posts {
@@ -64,13 +58,33 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
-		wg.Add(len(shareCounts))
 		for _, c := range shareCounts {
 			go c.GetShareCount(i, post.Url, ch)
 		}
 	}
 
-	wg.Wait()
+	for i := 0; i < len(posts)*len(shareCounts); i++ {
+		c := <-ch
+		switch c := c.(type) {
+		case facebook.APIRes:
+			// Insert FB count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
+			}
+			fmt.Println("facebook", c.Index)
+			posts[c.Index].SocialShares["fb"] = c.Count
+		case linkedin.APIRes:
+			// Insert LN count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
+			}
+			fmt.Println("linkedin", c.Index)
+			posts[c.Index].SocialShares["ln"] = c.Count
+		}
+	}
+
 	fmt.Println("\n--------------------Done\n")
 	close(ch)
 

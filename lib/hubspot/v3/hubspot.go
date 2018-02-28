@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"sync"
 
 	"cabstats/lib/facebook/v3"
 	"cabstats/lib/linkedin/v3"
@@ -31,7 +30,6 @@ func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
 }
 
 func GetPosts(limit string, offset string) ([]models.Post, error) {
-	var wg sync.WaitGroup
 	var hs APIRes
 	shareCounts := []shared.ShareCount{facebook.APIRes{}, linkedin.APIRes{}}
 
@@ -40,37 +38,31 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 
 	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
 
-	go func() {
-		for i := 0; i < len(posts)*len(shareCounts); i++ {
-			c := <-ch
-			switch c := c.(type) {
-			case facebook.APIRes:
-				// Insert FB count into post by index
-				fmt.Println("facebook", c.Index)
-				posts[c.Index].SocialShares["fb"] = c.Count
-			case linkedin.APIRes:
-				// Insert LN count into post by index
-				fmt.Println("linkedin", c.Index)
-				posts[c.Index].SocialShares["ln"] = c.Count
-			}
-
-			wg.Done()
-		}
-	}()
-
 	// Insert share counts into posts
 	for i, post := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
-		wg.Add(len(shareCounts))
 		for _, c := range shareCounts {
 			go c.GetShareCount(i, post.Url, ch)
 		}
 	}
 
-	wg.Wait()
+	for i := 0; i < len(posts)*len(shareCounts); i++ {
+		c := <-ch
+		switch c := c.(type) {
+		case facebook.APIRes:
+			// Insert FB count into post by index
+			fmt.Println("facebook", c.Index)
+			posts[c.Index].SocialShares["fb"] = c.Count
+		case linkedin.APIRes:
+			// Insert LN count into post by index
+			fmt.Println("linkedin", c.Index)
+			posts[c.Index].SocialShares["ln"] = c.Count
+		}
+	}
+
 	fmt.Println("\n--------------------Done\n")
 	close(ch)
 

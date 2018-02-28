@@ -14,7 +14,7 @@ type APIRes struct {
 	Count int `json:count`
 }
 
-func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) error {
+func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) {
 	s := rand.Intn(1000)
 
 	// Simulate network request
@@ -24,6 +24,4 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) er
 	r.Count = s
 
 	ch <- r
-
-	return nil
 }
