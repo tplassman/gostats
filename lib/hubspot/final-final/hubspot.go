@@ -9,7 +9,7 @@ import (
 
 	"cabstats/lib/facebook/final"
 	"cabstats/lib/linkedin/final"
-	"cabstats/lib/shared/final"
+	"cabstats/lib/shared"
 	"cabstats/models"
 )
 
@@ -51,7 +51,6 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 	}
 
 	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
-	errch := make(chan error)
 
 	// Insert share counts into posts
 	for i, post := range posts {
@@ -60,25 +59,29 @@ func GetPosts(limit string, offset string) ([]models.Post, error) {
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
 		for _, c := range shareCounts {
-			go c.GetShareCount(i, post.Url, ch, errch)
+			go c.GetShareCount(i, post.Url, ch)
 		}
 	}
 
 	for i := 0; i < len(posts)*len(shareCounts); i++ {
-		select {
-		case err := <-errch:
-			fmt.Println(err)
-		case c := <-ch:
-			switch c := c.(type) {
-			case facebook.APIRes:
-				// Insert FB count into post by index
-				fmt.Println("facebook", c.Index)
-				posts[c.Index].SocialShares["fb"] = c.Count
-			case linkedin.APIRes:
-				// Insert LN count into post by index
-				fmt.Println("linkedin", c.Index)
-				posts[c.Index].SocialShares["ln"] = c.Count
+		c := <-ch
+		switch c := c.(type) {
+		case facebook.APIRes:
+			// Insert FB count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
 			}
+			fmt.Println("facebook", c.Index)
+			posts[c.Index].SocialShares["fb"] = c.Count
+		case linkedin.APIRes:
+			// Insert LN count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
+			}
+			fmt.Println("linkedin", c.Index)
+			posts[c.Index].SocialShares["ln"] = c.Count
 		}
 	}
 

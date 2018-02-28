@@ -5,36 +5,35 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"cabstats/lib/shared"
+	"cabstats/lib/shared/final"
 )
 
 type APIRes struct {
 	Index int
 	Count int `json:share:share_count`
-	Error error
 }
 
-func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) {
+func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount, errch chan<- error) {
 	r.Index = i
-	// Return API response to channel
-	defer func() { ch <- r }()
 	// Get API response
 	res, err := http.Get("http://graph.facebook.com/?id=" + url)
 	defer res.Body.Close()
 	if err != nil {
-		r.Error = err
+		errch <- err
 		return
 	}
 	// Read body from response
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		r.Error = err
+		errch <- err
 		return
 	}
 	// Add post index, populate struct w/ json response and send over channel
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		r.Error = err
+		errch <- err
 		return
 	}
+
+	ch <- r
 }
