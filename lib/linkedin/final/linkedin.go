@@ -34,6 +34,6 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounte
 		errch <- err
 		return
 	}
-  // Return data to channel
+	// Return data to channel
 	ch <- r
 }

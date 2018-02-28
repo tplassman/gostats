@@ -17,7 +17,7 @@ type APIRes struct {
 }
 
 func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
-  apiKey := os.Getenv("HS_API_KEY")
+	apiKey := os.Getenv("HS_API_KEY")
 	// Get API response
 	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
