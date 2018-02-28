@@ -13,15 +13,12 @@ type APIRes struct {
 	Count int `json:count`
 }
 
-func (r APIRes) GetShareCount(p models.Post, wg *sync.WaitGroup) error {
+func (r APIRes) GetShareCount(p models.Post, wg *sync.WaitGroup) {
 	s := 500
-
 	// Simulate network request
 	time.Sleep(time.Duration(s) * time.Millisecond)
-
+	// Simulate response
 	fmt.Println("linkedin", p.Url)
 	p.SocialShares["ln"] = s
 	wg.Done()
-
-	return nil
 }

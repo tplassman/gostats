@@ -18,11 +18,12 @@ type APIRes struct {
 }
 
 func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
-	apiKey := os.Getenv("HS_API_KEY")
+  apiKey := os.Getenv("HS_API_KEY")
+	// Get API response
 	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
+	// Read body from response
 	body, _ := ioutil.ReadAll(res.Body)
-
 	// Populate struct w/ json response
 	json.Unmarshal(body, &r)
 
@@ -31,12 +32,12 @@ func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
 
 func GetPosts(limit string, offset string) ([]models.Post, error) {
 	var hs APIRes
-	shareCounts := []shared.ShareCount{facebook.APIRes{}, linkedin.APIRes{}}
+	shareCounts := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
 
 	// Get posts from HubSpot API
 	posts, _ := hs.GetPosts(limit, offset)
 
-	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
+	ch := make(chan shared.GetShareCounter, len(posts)*len(shareCounts))
 
 	// Insert share counts into posts
 	for i, post := range posts {

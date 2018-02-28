@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/v2"
+	"cabstats/lib/hubspot/v3"
 	"cabstats/models"
 )
 
@@ -21,7 +21,6 @@ type ViewData struct {
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-
 		return
 	}
 
@@ -41,7 +40,6 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	posts, err := hubspot.GetPosts(limit, offset)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
-
 		return
 	}
 
@@ -72,7 +70,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 				return "0"
 			}
 
-      return strconv.Itoa(prevOffsetInt)
+			return strconv.Itoa(prevOffsetInt)
 		},
 		"getNextOffset": func() string {
 			limitInt, _ := strconv.Atoi(limit)

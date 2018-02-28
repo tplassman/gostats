@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"cabstats/lib/facebook/final"
-	"cabstats/lib/linkedin/final"
+	"cabstats/lib/facebook/final-final"
+	"cabstats/lib/linkedin/final-final"
 	"cabstats/lib/shared"
 	"cabstats/models"
 )
@@ -18,10 +18,9 @@ type APIRes struct {
 }
 
 func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
-	endpoint := "https://api.hubapi.com/content/api/v2/blog-posts"
-	apiKey := os.Getenv("HS_API_KEY")
+  apiKey := os.Getenv("HS_API_KEY")
 	// Get API response
-	res, err := http.Get(endpoint + "?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
+	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
 	if err != nil {
 		return nil, err
@@ -42,15 +41,15 @@ func (r APIRes) GetPosts(limit string, offset string) ([]models.Post, error) {
 
 func GetPosts(limit string, offset string) ([]models.Post, error) {
 	var hs APIRes
-	shareCounts := []shared.ShareCount{facebook.APIRes{}, linkedin.APIRes{}}
+	shareCounts := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
+
+	ch := make(chan shared.GetShareCounter)
 
 	// Get posts from HubSpot API
 	posts, err := hs.GetPosts(limit, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	ch := make(chan shared.ShareCount, len(posts)*len(shareCounts))
 
 	// Insert share counts into posts
 	for i, post := range posts {

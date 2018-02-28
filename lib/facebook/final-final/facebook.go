@@ -14,9 +14,9 @@ type APIRes struct {
 	Error error
 }
 
-func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount) {
+func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounter) {
 	r.Index = i
-	// Return API response to channel
+	// Return data to channel
 	defer func() { ch <- r }()
 	// Get API response
 	res, err := http.Get("http://graph.facebook.com/?id=" + url)

@@ -13,7 +13,7 @@ type APIRes struct {
 	Count int `json:share:share_count`
 }
 
-func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount, errch chan<- error) {
+func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounter, errch chan<- error) {
 	r.Index = i
 	// Get API response
 	res, err := http.Get("http://graph.facebook.com/?id=" + url)
@@ -34,6 +34,6 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.ShareCount, er
 		errch <- err
 		return
 	}
-
+	// Return data to channel
 	ch <- r
 }

@@ -1,5 +1,5 @@
 package shared
 
-type ShareCount interface {
-	GetShareCount(int, string, chan<- ShareCount, chan<- error)
+type GetShareCounter interface {
+	GetShareCount(int, string, chan<- GetShareCounter, chan<- error)
 }
