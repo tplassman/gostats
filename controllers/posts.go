@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/final"
+	"cabstats/lib/hubspot/v1"
 	"cabstats/models"
 )
 
@@ -26,7 +26,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now()
-	limits := []string{"5", "10", "15", "20"}
+	limits := []string{"5", "10", "25", "50", "100"}
 	q := r.URL.Query()
 	limit := q.Get("limit")
 	if limit == "" {
