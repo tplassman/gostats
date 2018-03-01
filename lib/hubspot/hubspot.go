@@ -2,7 +2,6 @@ package hubspot
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -28,20 +27,15 @@ func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
 	apiKey := os.Getenv("HS_API_KEY")
 	// Get API response
 	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
-  if err != nil {
-    return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 	defer res.Body.Close()
-	// Read body from response
-	body, err := ioutil.ReadAll(res.Body)
-  if err != nil {
-    return nil, err
-  }
-	// Populate struct w/ json response
-	err = json.Unmarshal(body, &r)
-  if err != nil {
-    return nil, err
-  }
-  // Return posts
+	// Decode JSON from response body
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		return nil, err
+	}
+	// Return posts
 	return r.Objects, nil
 }
