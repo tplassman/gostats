@@ -27,12 +27,21 @@ type APIRes struct {
 func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
 	apiKey := os.Getenv("HS_API_KEY")
 	// Get API response
-	res, _ := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
+	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
+  if err != nil {
+    return nil, err
+  }
 	defer res.Body.Close()
 	// Read body from response
-	body, _ := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(res.Body)
+  if err != nil {
+    return nil, err
+  }
 	// Populate struct w/ json response
-	json.Unmarshal(body, &r)
-
+	err = json.Unmarshal(body, &r)
+  if err != nil {
+    return nil, err
+  }
+  // Return posts
 	return r.Objects, nil
 }
