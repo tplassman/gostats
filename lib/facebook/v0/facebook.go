@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cabstats/models"
+	"cabstats/lib/hubspot"
 )
 
 type APIRes struct {
@@ -13,7 +13,7 @@ type APIRes struct {
 	Count int `json:share:share_count`
 }
 
-func (r APIRes) GetShareCount(p models.Post) {
+func (r APIRes) GetShareCount(p hubspot.Post) {
 	s := rand.Intn(1000) // 1s max
 	// Simulate network request
 	time.Sleep(time.Duration(s) * time.Millisecond)

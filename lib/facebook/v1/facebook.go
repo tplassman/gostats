@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"cabstats/models"
+	"cabstats/lib/hubspot"
 )
 
 type APIRes struct {
@@ -13,7 +13,7 @@ type APIRes struct {
 	Count int `json:share:share_count`
 }
 
-func (r APIRes) GetShareCount(p models.Post, wg *sync.WaitGroup) {
+func (r APIRes) GetShareCount(p hubspot.Post, wg *sync.WaitGroup) {
 	s := 500
 	// Simulate network request
 	time.Sleep(time.Duration(s) * time.Millisecond)

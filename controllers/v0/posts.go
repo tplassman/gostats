@@ -1,17 +1,19 @@
 package controllers
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
 	"time"
 
-	"cabstats/lib/hubspot/v3"
-	"cabstats/models"
+	"cabstats/lib/facebook/v0"
+	"cabstats/lib/hubspot"
+	"cabstats/lib/linkedin/v0"
 )
 
 type ViewData struct {
-	Posts    []models.Post
+	Posts    []hubspot.Post
 	Limits   []string
 	Limit    string
 	Max, Sum int
@@ -36,12 +38,28 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		offset = "0"
 	}
 
-	// Get posts
-	posts, err := hubspot.GetPosts(limit, offset)
+	var hs hubspot.APIRes
+	var fb facebook.APIRes
+	var ln linkedin.APIRes
+
+	// Get posts from HubSpot API
+	posts, err := hs.GetPosts(limit, offset)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
+
+	// Insert share counts into posts
+	for i, _ := range posts {
+		// Initalize share map
+		// Index into posts slice to get pointer instead of value provided by range
+		posts[i].SocialShares = make(map[string]int)
+		// Fetch share counts
+		fb.GetShareCount(posts[i])
+		ln.GetShareCount(posts[i])
+	}
+
+	fmt.Println("\n--------------------Done\n")
 
 	// Calculate sums
 	max := 0
