@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"cabstats/controllers/v3"
+	"cabstats/controllers"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -19,6 +19,7 @@ func main() {
 	// Instantiate gorilla mux
 	r := mux.NewRouter()
 	// Define routes
+	r.HandleFunc("/", controllers.IndexHandler)
 	r.HandleFunc("/posts", controllers.PostsHandler)
 	// Start server with gorilla mux
 	http.Handle("/", r)

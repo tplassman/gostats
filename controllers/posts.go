@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/facebook/v0"
+	"cabstats/lib/facebook"
 	"cabstats/lib/hubspot"
-	"cabstats/lib/linkedin/v0"
+	"cabstats/lib/linkedin"
+	"cabstats/lib/shared"
 )
 
 type ViewData struct {
@@ -39,8 +40,8 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var hs hubspot.APIRes
-	var fb facebook.APIRes
-	var ln linkedin.APIRes
+	shareCounts := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
+	ch := make(chan shared.GetShareCounter)
 
 	// Get posts from HubSpot API
 	posts, err := hs.GetPosts(limit, offset)
@@ -50,16 +51,40 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert share counts into posts
-	for i, _ := range posts {
+	for i, post := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
-		fb.GetShareCount(posts[i])
-		ln.GetShareCount(posts[i])
+		for _, c := range shareCounts {
+			go c.GetShareCount(i, post.Url, ch)
+		}
+	}
+
+	for i := 0; i < len(posts)*len(shareCounts); i++ {
+		c := <-ch
+		switch c := c.(type) {
+		case facebook.APIRes:
+			// Insert FB count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
+			}
+			fmt.Println("facebook", c.Index)
+			posts[c.Index].SocialShares["fb"] = c.Count
+		case linkedin.APIRes:
+			// Insert LN count into post by index
+			if c.Error != nil {
+				fmt.Println(c.Error)
+				break
+			}
+			fmt.Println("linkedin", c.Index)
+			posts[c.Index].SocialShares["ln"] = c.Count
+		}
 	}
 
 	fmt.Println("\n--------------------Done\n")
+	close(ch)
 
 	// Calculate sums
 	max := 0
