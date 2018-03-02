@@ -25,9 +25,13 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounte
 		return
 	}
 	// Decode JSON from response body
-	err = json.NewDecoder(res.Body).Decode(&r)
-	if err != nil {
-		r.Error = err
-		return
+	dec := json.NewDecoder(res.Body)
+	for {
+		if err := dec.Decode(&r); err == io.EOF {
+			break
+		} else if err != nil {
+			r.Error = err
+			return
+		}
 	}
 }
