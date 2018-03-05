@@ -2,6 +2,7 @@ package hubspot
 
 import (
 	"encoding/json"
+  "io"
 	"net/http"
 	"os"
 	"time"
