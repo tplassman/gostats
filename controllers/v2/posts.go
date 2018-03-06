@@ -20,6 +20,39 @@ type ViewData struct {
 	Elapsed  int64
 }
 
+func getShareCounts(posts []hubspot.Post) []hubspot.Post {
+	var fb facebook.APIRes
+	var ln linkedin.APIRes
+	fbCh := make(chan facebook.APIRes)
+	lnCh := make(chan linkedin.APIRes)
+	// Fetch share counts for each post
+	for i, post := range posts {
+		// Initalize share map
+		// Index into posts slice to get pointer instead of value provided by range
+		posts[i].SocialShares = make(map[string]int)
+		// Fetch share counts
+		go fb.GetShareCount(i, post.Url, fbCh)
+		go ln.GetShareCount(i, post.Url, lnCh)
+	}
+	// Wait for return from all social network requests
+	for i := 0; i < len(posts)*2; i++ {
+		select {
+		case fbCount := <-fbCh:
+			// Insert FB count into post by index
+			fmt.Println("facebook", fbCount.Index)
+			posts[fbCount.Index].SocialShares["fb"] = fbCount.Count
+		case lnCount := <-lnCh:
+			// Insert LN count into post by index
+			fmt.Println("linkedin", lnCount.Index)
+			posts[lnCount.Index].SocialShares["ln"] = lnCount.Count
+		}
+	}
+	fmt.Println("\n--------------------Done\n")
+	close(fbCh)
+	close(lnCh)
+	return posts
+}
+
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
@@ -38,46 +71,15 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		offset = "0"
 	}
 
-	var hs hubspot.APIRes
-	var fb facebook.APIRes
-	var ln linkedin.APIRes
-
-	fbCh := make(chan facebook.APIRes)
-	lnCh := make(chan linkedin.APIRes)
-
 	// Get posts from HubSpot API
+	var hs hubspot.APIRes
 	posts, err := hs.GetPosts(limit, offset)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-
-	// Insert share counts into posts
-	for i, post := range posts {
-		// Initalize share map
-		// Index into posts slice to get pointer instead of value provided by range
-		posts[i].SocialShares = make(map[string]int)
-		// Fetch share counts
-		go fb.GetShareCount(i, post.Url, fbCh)
-		go ln.GetShareCount(i, post.Url, lnCh)
-	}
-
-	for i := 0; i < len(posts)*2; i++ {
-		select {
-		case fbCount := <-fbCh:
-			// Insert FB count into post by index
-			fmt.Println("facebook", fbCount.Index)
-			posts[fbCount.Index].SocialShares["fb"] = fbCount.Count
-		case lnCount := <-lnCh:
-			// Insert LN count into post by index
-			fmt.Println("linkedin", lnCount.Index)
-			posts[lnCount.Index].SocialShares["ln"] = lnCount.Count
-		}
-	}
-
-	fmt.Println("\n--------------------Done\n")
-	close(fbCh)
-	close(lnCh)
+	// Get share counts from social networks for all posts
+	posts = getShareCounts(posts)
 
 	// Calculate sums
 	max := 0

@@ -20,6 +20,22 @@ type ViewData struct {
 	Elapsed  int64
 }
 
+func getShareCounts(posts []hubspot.Post) []hubspot.Post {
+	var fb facebook.APIRes
+	var ln linkedin.APIRes
+	// Fetch share counts for each post
+	for i, _ := range posts {
+		// Initalize share map
+		// Index into posts slice to get pointer instead of value provided by range
+		posts[i].SocialShares = make(map[string]int)
+		// Fetch share counts
+		fb.GetShareCount(posts[i])
+		ln.GetShareCount(posts[i])
+	}
+	fmt.Println("\n--------------------Done\n")
+	return posts
+}
+
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
@@ -38,28 +54,15 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 		offset = "0"
 	}
 
-	var hs hubspot.APIRes
-	var fb facebook.APIRes
-	var ln linkedin.APIRes
-
 	// Get posts from HubSpot API
+	var hs hubspot.APIRes
 	posts, err := hs.GetPosts(limit, offset)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-
-	// Insert share counts into posts
-	for i, _ := range posts {
-		// Initalize share map
-		// Index into posts slice to get pointer instead of value provided by range
-		posts[i].SocialShares = make(map[string]int)
-		// Fetch share counts
-		fb.GetShareCount(posts[i])
-		ln.GetShareCount(posts[i])
-	}
-
-	fmt.Println("\n--------------------Done\n")
+	// Get share counts from social networks for all posts
+	posts = getShareCounts(posts)
 
 	// Calculate sums
 	max := 0

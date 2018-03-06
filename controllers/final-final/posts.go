@@ -21,36 +21,10 @@ type ViewData struct {
 	Elapsed  int64
 }
 
-func PostsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-		return
-	}
-
-	start := time.Now()
-	limits := []string{"5", "10", "25", "50", "100"}
-	q := r.URL.Query()
-	limit := q.Get("limit")
-	if limit == "" {
-		limit = limits[0]
-	}
-	offset := q.Get("offset")
-	if offset == "" {
-		offset = "0"
-	}
-
-	var hs hubspot.APIRes
+func getShareCounts(posts []hubspot.Post) []hubspot.Post {
 	shareCounts := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
 	ch := make(chan shared.GetShareCounter)
-
-	// Get posts from HubSpot API
-	posts, err := hs.GetPosts(limit, offset)
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	// Insert share counts into posts
+	// Fetch share counts for each post
 	for i, post := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
@@ -60,7 +34,7 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			go c.GetShareCount(i, post.Url, ch)
 		}
 	}
-
+	// Wait for return from all social network requests
 	for i := 0; i < len(posts)*len(shareCounts); i++ {
 		c := <-ch
 		switch c := c.(type) {
@@ -82,9 +56,38 @@ func PostsHandler(w http.ResponseWriter, r *http.Request) {
 			posts[c.Index].SocialShares["ln"] = c.Count
 		}
 	}
-
 	fmt.Println("\n--------------------Done\n")
 	close(ch)
+	return posts
+}
+
+func PostsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+		return
+	}
+
+	start := time.Now()
+	limits := []string{"5", "10", "25", "50", "100"}
+	q := r.URL.Query()
+	limit := q.Get("limit")
+	if limit == "" {
+		limit = limits[0]
+	}
+	offset := q.Get("offset")
+	if offset == "" {
+		offset = "0"
+	}
+
+	// Get posts from HubSpot API
+	var hs hubspot.APIRes
+	posts, err := hs.GetPosts(limit, offset)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	// Get share counts from social networks for all posts
+	posts = getShareCounts(posts)
 
 	// Calculate sums
 	max := 0

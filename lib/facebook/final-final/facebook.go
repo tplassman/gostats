@@ -2,6 +2,7 @@ package facebook
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"cabstats/lib/shared"
