@@ -2,7 +2,7 @@ package hubspot
 
 import (
 	"encoding/json"
-  "io"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -10,7 +10,7 @@ import (
 
 type Post struct {
 	Id           uint
-  PublishDate  uint `json:"publish_date"`
+	PublishDate  uint `json:"publish_date"`
 	Name         string
 	Url          string
 	SocialShares map[string]int
