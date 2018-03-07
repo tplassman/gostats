@@ -1,4 +1,4 @@
-# Compressed Air Blog Stats
+# Go Stats
 This application is used to query the HubSpot API for the blog articles and display social media share information for analytics reporting.
 Versions of this application show the progression and re-architecture to take advantage of Go language features such as concurrency and interface types
 
@@ -8,7 +8,7 @@ Versions of this application show the progression and re-architecture to take ad
 # Versions
 
 ## V0
-* Syncronous execution of network requests to fetch share count for each article for each social network
+* Synchronous execution of network requests to fetch share count for each article for each social network
 
 ## V1
 * Make network requests in parallel by launching share count functions as goroutines

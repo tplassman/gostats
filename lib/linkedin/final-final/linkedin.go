@@ -11,7 +11,7 @@ import (
 type APIRes struct {
 	Index int
 	Count int `json:count`
-	Error error
+	Err   error
 }
 
 func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounter) {
@@ -22,7 +22,7 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounte
 	res, err := http.Get("https://www.linkedin.com/countserv/count/share?url=" + url + "&format=json")
 	defer res.Body.Close()
 	if err != nil {
-		r.Error = err
+		r.Err = err
 		return
 	}
 	// Decode JSON from response body
@@ -31,7 +31,7 @@ func (r APIRes) GetShareCount(i int, url string, ch chan<- shared.GetShareCounte
 		if err := dec.Decode(&r); err == io.EOF {
 			break
 		} else if err != nil {
-			r.Error = err
+			r.Err = err
 			return
 		}
 	}

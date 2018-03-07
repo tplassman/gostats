@@ -40,16 +40,16 @@ func getShareCounts(posts []hubspot.Post) []hubspot.Post {
 		switch c := c.(type) {
 		case facebook.APIRes:
 			// Insert FB count into post by index
-			if c.Error != nil {
-				fmt.Println(c.Error)
+			if c.Err != nil {
+				fmt.Println(c.Err)
 				break
 			}
 			fmt.Println("facebook", c.Index)
 			posts[c.Index].SocialShares["fb"] = c.Count
 		case linkedin.APIRes:
 			// Insert LN count into post by index
-			if c.Error != nil {
-				fmt.Println(c.Error)
+			if c.Err != nil {
+				fmt.Println(c.Err)
 				break
 			}
 			fmt.Println("linkedin", c.Index)
