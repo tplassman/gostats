@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -25,9 +24,8 @@ type APIRes struct {
 }
 
 func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
-	apiKey := os.Getenv("HS_API_KEY")
 	// Get API response
-	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=" + apiKey + "&limit=" + limit + "&offset=" + offset)
+	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
 	defer res.Body.Close()
 	if err != nil {
 		return nil, err
