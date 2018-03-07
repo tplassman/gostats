@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"cabstats/controllers/v3"
+	"gostats/controllers/v3"
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"

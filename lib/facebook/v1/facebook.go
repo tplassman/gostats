@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"cabstats/lib/hubspot"
+	"gostats/lib/hubspot"
 )
 
 type APIRes struct {

@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/facebook/v3"
-	"cabstats/lib/hubspot"
-	"cabstats/lib/linkedin/v3"
-	"cabstats/lib/shared"
+	"gostats/lib/facebook/v3"
+	"gostats/lib/hubspot"
+	"gostats/lib/linkedin/v3"
+	"gostats/lib/shared"
 )
 
 type ViewData struct {

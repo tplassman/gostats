@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cabstats/lib/hubspot"
+	"gostats/lib/hubspot"
 )
 
 type APIRes struct {

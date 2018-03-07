@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/facebook/v2"
-	"cabstats/lib/hubspot"
-	"cabstats/lib/linkedin/v2"
+	"gostats/lib/facebook/v2"
+	"gostats/lib/hubspot"
+	"gostats/lib/linkedin/v2"
 )
 
 type ViewData struct {

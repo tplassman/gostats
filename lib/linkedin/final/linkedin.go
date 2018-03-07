@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"cabstats/lib/shared/final"
+	"gostats/lib/shared/final"
 )
 
 type APIRes struct {

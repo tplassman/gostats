@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"cabstats/lib/facebook/v1"
-	"cabstats/lib/hubspot"
-	"cabstats/lib/linkedin/v1"
+	"gostats/lib/facebook/v1"
+	"gostats/lib/hubspot"
+	"gostats/lib/linkedin/v1"
 )
 
 type ViewData struct {

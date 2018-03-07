@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"cabstats/lib/shared"
+	"gostats/lib/shared"
 )
 
 type APIRes struct {
