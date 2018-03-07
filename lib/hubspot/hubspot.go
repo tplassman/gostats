@@ -10,7 +10,11 @@ import (
 
 type Post struct {
 	Id           uint
+<<<<<<< HEAD
 	PublishDate  uint `json:"publish_date"`
+=======
+	PublishDate  uint
+>>>>>>> 8cb75d53f9121fb6112f68d45deeae5572ccd1ee
 	Name         string
 	Url          string
 	SocialShares map[string]int

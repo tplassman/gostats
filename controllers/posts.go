@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"cabstats/lib/facebook/final-final"
+	"cabstats/lib/facebook"
 	"cabstats/lib/hubspot"
-	"cabstats/lib/linkedin/final-final"
+	"cabstats/lib/linkedin"
 	"cabstats/lib/shared"
 )
 
