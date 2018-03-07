@@ -37,14 +37,14 @@ func getShareCounts(posts []hubspot.Post) []hubspot.Post {
 	// Wait for return from all social network requests
 	for i := 0; i < len(posts)*2; i++ {
 		select {
-		case fbCount := <-fbCh:
+		case c := <-fbCh:
 			// Insert FB count into post by index
-			fmt.Println("facebook", fbCount.Index)
-			posts[fbCount.Index].SocialShares["fb"] = fbCount.Count
-		case lnCount := <-lnCh:
+			fmt.Println("facebook", c.Index)
+			posts[c.Index].SocialShares["fb"] = c.Count
+		case c := <-lnCh:
 			// Insert LN count into post by index
-			fmt.Println("linkedin", lnCount.Index)
-			posts[lnCount.Index].SocialShares["ln"] = lnCount.Count
+			fmt.Println("linkedin", c.Index)
+			posts[c.Index].SocialShares["ln"] = c.Count
 		}
 	}
 	fmt.Println("\n--------------------Done\n")
