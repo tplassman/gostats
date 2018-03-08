@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"gostats/lib/facebook/v2"
+	"gostats/lib/facebook"
 	"gostats/lib/hubspot"
-	"gostats/lib/linkedin/v2"
+	"gostats/lib/linkedin"
+	"gostats/lib/shared"
 )
 
 type ViewData struct {
@@ -23,33 +24,30 @@ type ViewData struct {
 func getShareCounts(posts []hubspot.Post) []hubspot.Post {
 	var fb facebook.APIRes
 	var ln linkedin.APIRes
-	fbCh := make(chan facebook.APIRes)
-	lnCh := make(chan linkedin.APIRes)
+	ch := make(chan shared.ShareCount)
 	// Fetch share counts for each post
-	for i, post := range posts {
+	for i, p := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
-		go fb.GetShareCount(i, post.Url, fbCh)
-		go ln.GetShareCount(i, post.Url, lnCh)
+		go func(i int, u string) {
+			c, _ := fb.GetShareCount(u)
+			ch <- shared.ShareCount{i, c, "fb"}
+		}(i, p.Url)
+		go func(i int, u string) {
+			c, _ := ln.GetShareCount(u)
+			ch <- shared.ShareCount{i, c, "ln"}
+		}(i, p.Url)
 	}
 	// Wait for return from all social network requests
 	for i := 0; i < len(posts)*2; i++ {
-		select {
-		case c := <-fbCh:
-			// Insert FB count into post by index
-			fmt.Println("facebook", c.Index)
-			posts[c.Index].SocialShares["fb"] = c.Count
-		case c := <-lnCh:
-			// Insert LN count into post by index
-			fmt.Println("linkedin", c.Index)
-			posts[c.Index].SocialShares["ln"] = c.Count
-		}
+		c := <-ch
+		fmt.Println(c.Source, c.Index)
+		posts[c.Index].SocialShares[c.Source] = c.Count
 	}
 	fmt.Println("\n--------------------Done\n")
-	close(fbCh)
-	close(lnCh)
+	close(ch)
 	return posts
 }
 

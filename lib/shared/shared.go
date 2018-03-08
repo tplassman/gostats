@@ -1,5 +1,11 @@
 package shared
 
+type ShareCount struct {
+	Index  int
+	Count  int
+	Source string
+}
+
 type GetShareCounter interface {
-	GetShareCount(int, string, chan<- GetShareCounter)
+	GetShareCount(string) (int, error)
 }

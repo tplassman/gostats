@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"gostats/lib/facebook/v1"
+	"gostats/lib/facebook"
 	"gostats/lib/hubspot"
-	"gostats/lib/linkedin/v1"
+	"gostats/lib/linkedin"
 )
 
 type ViewData struct {
@@ -26,14 +26,22 @@ func getShareCounts(posts []hubspot.Post) []hubspot.Post {
 	var fb facebook.APIRes
 	var ln linkedin.APIRes
 	// Fetch share counts for each post
-	for i, _ := range posts {
+	for i, p := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
 		wg.Add(2)
-		go fb.GetShareCount(posts[i], &wg)
-		go ln.GetShareCount(posts[i], &wg)
+		go func(i int, u string) {
+			fmt.Println("fb", i)
+			posts[i].SocialShares["fb"], _ = fb.GetShareCount(u)
+			wg.Done()
+		}(i, p.Url)
+		go func(i int, u string) {
+			fmt.Println("ln", i)
+			posts[i].SocialShares["ln"], _ = ln.GetShareCount(u)
+			wg.Done()
+		}(i, p.Url)
 	}
 	wg.Wait()
 	fmt.Println("\n--------------------Done\n")

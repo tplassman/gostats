@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"gostats/lib/facebook/final"
+	"gostats/lib/facebook"
 	"gostats/lib/hubspot"
-	"gostats/lib/linkedin/final"
-	"gostats/lib/shared/final"
+	"gostats/lib/linkedin"
+	"gostats/lib/shared"
 )
 
 type ViewData struct {
@@ -22,35 +22,39 @@ type ViewData struct {
 }
 
 func getShareCounts(posts []hubspot.Post) []hubspot.Post {
-	shareCounts := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
-	ch := make(chan shared.GetShareCounter)
+	getShareCounters := []shared.GetShareCounter{facebook.APIRes{}, linkedin.APIRes{}}
+	ch := make(chan shared.ShareCount, len(posts)*len(getShareCounters))
 	errch := make(chan error)
 	// Fetch share counts for each post
-	for i, post := range posts {
+	for i, p := range posts {
 		// Initalize share map
 		// Index into posts slice to get pointer instead of value provided by range
 		posts[i].SocialShares = make(map[string]int)
 		// Fetch share counts
-		for _, c := range shareCounts {
-			go c.GetShareCount(i, post.Url, ch, errch)
+		for _, g := range getShareCounters {
+			go func(g shared.GetShareCounter, i int, u string) {
+				c, err := g.GetShareCount(u)
+				if err != nil {
+					errch <- err
+					return
+				}
+				switch g.(type) {
+				case facebook.APIRes:
+					ch <- shared.ShareCount{i, c, "fb"}
+				case linkedin.APIRes:
+					ch <- shared.ShareCount{i, c, "ln"}
+				}
+			}(g, i, p.Url)
 		}
 	}
 	// Wait for return from all social network requests
-	for i := 0; i < len(posts)*len(shareCounts); i++ {
+	for i := 0; i < len(posts)*len(getShareCounters); i++ {
 		select {
 		case err := <-errch:
 			fmt.Println(err)
 		case c := <-ch:
-			switch c := c.(type) {
-			case facebook.APIRes:
-				// Insert FB count into post by index
-				fmt.Println("facebook", c.Index)
-				posts[c.Index].SocialShares["fb"] = c.Count
-			case linkedin.APIRes:
-				// Insert LN count into post by index
-				fmt.Println("linkedin", c.Index)
-				posts[c.Index].SocialShares["ln"] = c.Count
-			}
+			fmt.Println(c.Source, c.Index)
+			posts[c.Index].SocialShares[c.Source] = c.Count
 		}
 	}
 	fmt.Println("\n--------------------Done\n")
