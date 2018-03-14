@@ -8,15 +8,15 @@ import (
 )
 
 type Post struct {
-	Id           uint
-	PublishDate  uint `json:"publish_date"`
+	Id           int
+	PublishDate  int64 `json:"publish_date"`
 	Name         string
 	Url          string
 	SocialShares map[string]int
 }
 
 func (p Post) FormattedDate() time.Time {
-	return time.Unix(int64(p.PublishDate/1000), 0)
+	return time.Unix(p.PublishDate/1000, 0)
 }
 
 type APIRes struct {

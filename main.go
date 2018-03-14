@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"gostats/controllers/final"
+	"gostats/controllers/v3"
 )
 
 func main() {
