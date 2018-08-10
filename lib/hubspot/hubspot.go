@@ -26,10 +26,10 @@ type APIRes struct {
 func (r APIRes) GetPosts(limit string, offset string) ([]Post, error) {
 	// Get API response
 	res, err := http.Get("https://api.hubapi.com/content/api/v2/blog-posts?hapikey=demo&limit=" + limit + "&offset=" + offset)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 	// Decode JSON from response body
 	dec := json.NewDecoder(res.Body)
 	for {
